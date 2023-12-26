@@ -1,6 +1,6 @@
 # Techniques
 ## 571a: Dr. Henry Scharf
-SLR, MLR, GLM, confidence intervals (new/existing obs), confidence bands (Working-Hotelling procedure) for SLR/MLR, (LINE) assumptions, remedial measures to (LINE) violations, bootstrapping for nonnormality, nonlinear transformations on predictors/response (poly(), boxcox(), log()), interactions terms, regularization with LASSO/Ridge using glmnet, family-wise inference, Full v. Reduced models, logistic regression, ggplot (plotting all of the above in session 13), splines, missing data (mice package)
+SLR, MLR, GLM, Logistic Regression, confidence intervals (new/existing obs), confidence bands/surfaces (Working-Hotelling procedure), (LINE) assumptions, remedial measures to (LINE) violations, bootstrapping boot() for nonnormality, nonlinear transformations on predictors/response poly(), boxcox(), log(); interactions terms, multicollinearity with corrplot() and vif(), regularization with LASSO/Ridge with glmnet, family-wise inference, ANOVA for full/reduced models, base R/ggplot for 2+ predictors, splines, missing data (mice package)
 
 ### Session 1: Overview of techniques (most are used)
 In this session, we will take a look at the relationship between two variables heat severity and percent elderly in a simple single-variable relationship. With this simple linear regression model, we will look at new predictions and confidence intervals for these predictions. In addition, confidence bands for regression lines and confidence intervals for the estimated coefficients b0 and b1.
@@ -58,9 +58,9 @@ Overall, the difference for each bi from method 1 vs. method 2 is a scale of the
 ### Session 9: nonlinear MLR with poly()
 Here, we explain how to use nonlinear transformations. Most important is the use of poly(). It is advised since using "raw" coding does not allow you to see significant predictors if not all of the predictors are significant. Using poly() creates orthogonal poly predictors, so the predictors' coefficients are jointly independent. Meaning, higher order polynomial predictor estimates and p-vals indicate their effect "on top of" the lower poly predictor coefficients. i.e. it allows you to see if higher-order coefficient effects are more effective than lower ones.
 
-### Session 11, 12, 13 (pt 1): Working-Hotelling Confidence Surface for MLR, base R plotting techniques for 3 predictors (3rd variable: col, cex), interaction terms
+### Session 11, 12, 13 (pt 1): Working-Hotelling Confidence Surface for MLR, base R plotting techniques for 2 predictors (2nd variable: col, cex), interaction terms
 1. WH ci for MLR and example
-2. Visualization of higher order regression - colors (col), point sizes (cex) (Bin values into quantiles and color by each quantile for third predictor)
+2. Visualization of higher order regression - colors (col), point sizes (cex) (Bin values into quantiles and color by each quantile for 2nd predictor)
 3. Interactions "continuous:continuous"
 4. Logit Transformation (0,1) to R
 5. Interactions "categorical:categorical"
@@ -68,19 +68,26 @@ Here, we explain how to use nonlinear transformations. Most important is the use
 
 ### Session 13 (pt 2): Visualization with ggplot and base R
 GGPLOT SYNTAX: 
-ggplot(main dataset for points) + 
-  geom_point(aes(x,y,col=variable)) + 
-  geom_line(aes(x,y,group=,col=), data=fitted)) + 
-  geom_ribbon(aes(x,ymin,ymax,group,col), data=predictions) + 
+```
+ggplot("main dataset for points") + 
+  geom_point(aes(x,y,col="2nd predictor in dataset")) + 
+  geom_line(aes(x,y,
+                group="2nd variable in dataset", # separates the lines
+                col="2nd variable in dataset"),   # colors the separate lines
+                data="fitted dataset")
+            ) + 
+  ###OPTIONAL: for confidence bands
+  geom_ribbon(aes(x,ymin,ymax,group,col), data="confidence band prediction dataset") +
   scale_color_viridis_b() + scale_fill_viridis_b(alpha)
-
+```
+  
 BASE R: 
-1. bin continuous data
-2. create colors vector
-3. a) plot points
-3. b) confidence bands and regression line
+1. cut 2nd continuous variable (each value will be replaced with a chunk e.g. `25` -> `(24,50]`)
+2. create colors vector with hcl.colors(no. of bins, alpha, palette)
+3. a) plot points with colors: `plot(Y~X, data, col = colors_vec[cut_predictor]`
+3. b) Fitted lines and confidence bands for each color representing the 2nd predictor var: use for-loop lines() and polgon(); at end, plot the legend()
 
-### Session 14: 
+### Session 14: Model selection with forward/backword/both step, Ridge Regression, Multicollinearity
 1. Looking at model selection using fwd/bwd/both methods for adding or subtracting predictors in model
 2. Explore the limitations in scoring methods which can be "shortsighted" by accepting local minima over global minima
 3. Multicollinearity
