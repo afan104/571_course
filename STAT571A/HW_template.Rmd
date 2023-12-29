@@ -1,0 +1,45 @@
+---
+title: "name of assignment"
+author: "student name"
+date: "date"
+output:
+  pdf_document
+header-includes:
+- \renewcommand*\familydefault{\sfdefault} %% this picks a sans serif font
+- \usepackage[T1]{fontenc}
+---
+```{r setup, echo=F}
+knitr::opts_chunk$set(cache = F)
+```
+
+**DELETE ANYTHING FROM THIS TEMPLATE BELOW THAT IS NOT PART OF YOUR SOLUTION.**
+
+(0) Instructions for installing tinytex for PDF rendering: [**https://yihui.org/tinytex/**](https://yihui.org/tinytex/)
+ 
+```{r, eval = F}
+install.packages('tinytex')
+tinytex::install_tinytex()
+```
+
+### I. First section
+
+(1) Answer to first question...using `mono-spaced font` to refer to a `function()` or other `code`...
+
+```{r}
+## code for first question...
+a <- 1:4
+a
+```
+
+(2) Here's a way to make a plot and include it
+
+```{r, fig.width=5, fig.height=4}
+plot(1:10)
+```
+
+### II. Second section
+
+(3) Make sure you read about `cache`-ing: https://bookdown.org/yihui/rmarkdown-cookbook/cache.html
+
+(4) If you can't get your R Markdown document to render as a PDF, you can try rendering it to HTML, and then "printing" the .html file to a PDF using any internet browser. 
+
