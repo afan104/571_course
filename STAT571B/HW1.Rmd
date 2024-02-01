@@ -1,0 +1,126 @@
+---
+title: "HW1: Simple Linear Regression Overview"
+author: Amy Fan
+date: "**DUE: 2/2/2024 11:59pm**"
+header-includes:
+   - \renewcommand*\familydefault{\sfdefault} %% this picks a sans serif font
+   - \usepackage[T1]{fontenc}
+output: pdf_document
+---
+
+```{r setup, echo=F}
+knitr::opts_chunk$set(cache = T, fig.width = 4, fig.align = 'center')
+```
+
+```{r, eval = F}
+install.packages('tinytex')
+tinytex::install_tinytex() # use to install for latex usage
+```
+## Homework Guidelines
+
+***Please submit your answers on Gradescope as a PDF with pages matched to question answers.***
+
+One way to prepare your solutions to this homework is with R Markdown, which provides a way to include mathematical notation, text, code, and figures in a single document. A template `.Rmd` file is available through D2L. 
+
+Make sure all solutions are clearly labeled, and please utilize the question pairing tool on Gradescope. You are encouraged to work together, but your solutions, code, plots, and wording should always be your own. Come and see me during office hours or schedule an appointment when you get stuck and can't get unstuck.
+
+### I. Mathematical Derivations [10 pts]
+
+(@) [10 pts] Let $y_{1, 1}, \dots, y_{1, n_1} \sim \mathrm{N}(\mu_1, \sigma^2)$ and $y_{2, 1}, \dots, y_{2, n_2} \sim \mathrm{N}(\mu_2, \sigma^2)$ be two independent samples of sizes $n_1$ and $n_2$ from their respective normal distributions. Consider the the $t$-test statistic for the null hypothesis $H_0: \mu_1 = \mu_2$: $t_0 = \frac{\bar{y}_1 - \bar{y}_2}{S_p \sqrt{\frac{1}{n_1} + \frac{1}{n_2}}}$. To maximize the power to detect small differences in $\mu_1 - \mu_2$, we desire the smallest possible value for the denominator. The goal for this problem is to show that, for fixed $N = n_1 + n_2$, a balanced sample with $n_1 = n_2 = N/2$ is optimal.
+
+    (a) [4 pts] Show that, given $N$, the distribution of $S_p$ is independent of the particular values of $n_1$ and $n_2$ (*hint: you may use the property that the sum of two independent chi-square random variables with degrees of freedom $k_1$ and $k_2$ is $\chi^2_{k_1 + k_2}$*).
+    (b) [4 pts] Show that $\sqrt{\frac{1}{n_1} + \frac{1}{n_2}}$ is minimized when $n_1 = n_2 = N/2$.
+    (c) [2 pts] Explain how parts (a) and (b) suggest that a balanced design is optimal.
+
+### II. Applications [30 pts]
+
+(@) [8 pts] (DAE 2.9) A Computer Program has produced the following output for a hypothesis testing problem:
+
+Difference in sample means: 2.35
+Degrees of freedom: 18
+Standard error of the difference in sample means: ?
+Test statistic: $t_0$ = 2.01
+P-value: 0.0298
+
+    (a) [2 pts] What is the missing value for the standard error?
+    ```{r}
+d_bar <- 2.35
+t_0 <- 2.01
+df <- 18
+n <- df + 1
+s_d <- d_bar/(t_0/sqrt(n)); s_d
+    ```
+    (b) [2 pts] Is this a two-sided or a one-sided test?
+```{r}
+pt(t_0,18,lower.tail = F) ### One-sided upper test
+```
+    (c) [2 pts] If $\alpha$ = 0.05, what are your conclusions? **Reject the null hypothesis**
+    (d) [2 pts] Find a 90% two-sided CI on the difference in means. [-1.73, 1.73]
+```{r}
+qt(.05,18);qt(.95,18)
+```
+
+(@) [8 pts] (DAE 2.26) The following are the burning times (in minutes) of chemical flares of two different formulations. The design engineers are interested in both the mean and veariance of the burning times.
+
+|   Type 1   |   Type 1   |   Type 2   |   Type 2   |
+|:----------:|:----------:|:----------:|:----------:|
+|     65     |     82     |     64     |     56     |
+|     81     |     67     |     71     |     69     |
+|     57     |     59     |     83     |     74     |
+|     66     |     75     |     59     |     82     |
+|     82     |     70     |     65     |     79     |
+
+    (a) [3 pts] Test the hypothesis that the two variances are equal. Use $\alpha$ = 0.05. **We fail to reject the null hypotehsis with a p value of 0.51. The variances can therefore be assumed equivalent.**
+```{r}
+flares <- data.frame(type1 = c(65, 82, 81, 67, 57, 59, 66, 75, 82, 70),
+                     type2 = c(64, 56, 71, 69, 83, 74, 59, 82, 65, 79)
+                     )
+Fstat <- var(flares$type1)/var(flares$type2)
+1 - pf(Fstat,9,9)
+```
+    (b) [3 pts] Using the results of (a), test the hypothesis that the mean burning times are equal. Use $\alpha$ = 0.05. What is the P-value for this test? **The p-value is 0.96 which is above the threshold. So, we conclude the burning times equivalent.**
+```{r}
+t.test(flares$type1, flares$type2, var.equal = T)
+```
+    (c) [2 pts] Discuss the role of the normality assumption in this problem. Check the assumption of normality for both types of flares.
+    
+**The normality conditions need to be met for the t test which assumes that the data is distributed normally. The test statistic has a t distributed reference distribution for hypothesis testing which relies on the normally distributed data. The data appears to be normally distributed based on teh qq plots.**
+    
+```{r}
+qqnorm(flares$type1);qqline(flares$type1)
+qqnorm(flares$type2);qqline(flares$type2)
+```
+
+Verify you have entered the data correctly by checking that the sample means and variances for each type of flare are:
+
+Type | Mean | Variance
+-----|------|---------
+1    | 70.4 | 85.82222
+2    | 70.2 | 87.73333
+
+```{r}
+mean(flares$type1); mean(flares$type2)
+var(flares$type1); var(flares$type2)
+```
+
+(@) [8 pts] (DAE 2.32) *See text*. A .CSV file with the recorded observations is available on D2L.
+
+    (a) [2 pts] Is there a significant difference between the means of the population of measurements from which the two samples were selected? Use $/alpha$ = 0.05. **There isn't a significant different since the pvalue is 0.6893.**
+```{r}
+calipers <- read.csv("~/571_course/STAT571B/Datasets/DAE2_32.csv")
+Fstat <- var(calipers$C1)/var(calipers$C2)
+1 - pf(Fstat,11,11) # equal var
+
+t.test(calipers$C1, calipers$C2, var.equal = T)
+```
+    (b) [2 pts] Find p value for test in a) **The p value is 0.6893.**
+    (c) [4 pts] Construct 95% confidence interval on the difference in mean diameter measurements for the two calipers. **The 95% confidence interval (-0.001029568, 0.001529568) includes zero which agrees with our previous conclusion to accept the null hypothesis.**
+
+
+(@) [6 pts] (DAE 2.45) Construct a data set for which the paired $t$-test statistic is very large, but for which the usual two-sample or pooled $t$-test statistic is small. *Report both the data values and the $t$-statistics*. In general, describe how you created the data. Does this give you any insight regarding how the paired t-test works?
+
+Increase the sample size to 30, organize the data so that 
+
+```{r}
+
+```
