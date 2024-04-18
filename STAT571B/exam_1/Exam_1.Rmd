@@ -1,0 +1,181 @@
+---
+title: "STAT 571B Exam 1"
+author: "Amy Fan"
+date: "2 Mar 2024"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+header-includes:
+- \renewcommand*\familydefault{\sfdefault} %% this picks a sans serif font
+- \usepackage[T1]{fontenc}
+---
+```{r setup, echo=F}
+knitr::opts_chunk$set(cache = F)
+```
+
+(0) Academic Honesty Statement
+I prepared my solutions to this exam in accordance with the guidelines on the exam. I did not consult
+directly with anyone else, nor did I post any questions anywhere for others to see.
+Signature: Amy Fan Date: 3 Mar 2024
+
+### I. First section
+
+(1) [2 pts] Which statistical design technique is used to protect against inferential bias introduced by unmeasured, potentially confounding variables? *The factorial principle*
+(a) Randomization
+(b) Blocking
+(c) Replication
+(d) **Factorial principle**
+
+(2) [2 pts] Which statistical design technique is used to control for the effects of nuisance factors to increase the precision of estimates of treatment effects?
+(a) Randomization
+(b) **Blocking**
+(c) Replication
+(d) Factorial principle
+
+(3) [6 pts] A mathematician studying the quality of various brands of chalk would like to know which one
+produces the quietest sound during use. She plans to compare three brands (A, B, and C) by measuring
+the volume of the chalk using a sensitive microphone. She also wants to control for the nuisance effect of
+which individual person in her department is using the chalk, so she selects three random mathematicians
+(Drs. X, Y, and Z) from her department to agree to test each brand of chalk.
+(a) [3 pts] What type of design would be appropriate for this experiment? Why is it appropriate? What
+benefits does your suggested design offer?
+
+Compare brands (A,B,C) while blocking by professor (X,Y,Z) - We can do a Randomized Complete Blocking Design. This gives us maximum power because of balanced design and orthogonal predictors. 
+
+   Block X   |  Block Y  |  Block Z  |
+-------------|-----------|-----------|
+   Chalk A   |  Chalk C  |  Chalk B  |
+   Chalk B   |  Chalk A  |  Chalk C  |
+   Chalk C   |  Chalk B  |  Chalk A  |
+
+(b) [3 pts] Now suppose the experimenter only has two pieces of chalk for each brand for the study (six
+total). What type of design would be appropriate under this constraint? Provide a detailed description
+of the design.
+
+A Balanced Incomplete Block Design would be the most appropriate with these constraints. Since we only have two pieces of each chalk, we cannot do a randomized complete block design. However, we can still keep the design balanced and allocate 2 chalk to 2 professors for each comparison. a=3, b=3, r=2, k=2, $\lambda$=1.
+
+table  |   Block X   |   Block Y   |   Block Z   |
+-------|-------------|-------------|-------------|
+   A   |      A      |      -      |      A      |
+   B   |      B      |      B      |      -      |
+   C   |      -      |      C      |      C      |
+   
+   
+(4) [9 pts] Each figure below (A–C) corresponds to a diagnostic plot for the model
+$$y_{ij} = \mu + \tau_i + \beta_{j} + \epsilon_{ij}, \epsilon_{ij} ~ N(0, \sigma^2),$$
+where $\tau_i$ is the effect of the ith level of a treatment factor and $\beta_j$ is the effect of a non-ignorable nuisance factor, fit to data. For each figure, explain which modeling assumption is shown to be violated and make a suggestion for remediation.
+
+A) There appears to be a possible interaction between group 3 and the treatment. We can address this by adding an interaction term between the group and treatment in the model. e.g. $y_{ij} = \mu + \tau_i + \beta_{j} + (\tau\beta)_{ij} + \epsilon_{ij}, \epsilon_{ij} ~ N(0, \sigma^2)$ where $(\tau\beta)_{ij}$ is an interaction.
+
+B) There is nonnormality of residuals in the model. We can remedy this by performing a transform on the data such as a log transform on the response: $log(y_{ij}) = \mu + \tau_i + \beta_{j} + \epsilon_{ij}, \epsilon_{ij} ~ N(0, \sigma^2)$
+
+C) Heteroskedasticity in the residuals can also be remedied by a transform to the response: $log(y_{ij}) = \mu + \tau_i + \beta_{j} + \epsilon_{ij}, \epsilon_{ij} ~ N(0, \sigma^2)$
+
+### II. Second section
+
+(5) [5 pts] Henry is determined to find the best cup of coffee near campus. After some preliminary investigation, he narrows his search to two cafes and now he wants to determine the number of samples he’ll need from each cafe so that he will be able to detect a difference in mean rating of 0.25 with 95% confidence and power 0.9. He has pilot data from two other cafes to help. Conduct a power analysis based on the pilot data to estimate how many cups of coffee Henry will need to test from each cafe.
+
+**We would need a sample size of n=14 from each cafe to detect a difference in mean rating of 0.25 with 95% confidence and power 0.9.**
+
+```{r}
+# pilot data
+coffee <- data.frame("cafe 1" = c(3.1, 3.5, 3.2, 3.2),
+                     "cafe 2" = c(4.5, 4.4, 4.0, 4.2))
+set.seed(100)
+n <- 14 # CHANGE
+sigma <- sqrt( ( (n-1)*sd(coffee$cafe.1)^2 + (n-1)*sd(coffee$cafe.2)^2 ) / (2*n-2) )
+alpha <- 0.05
+typeII <- sapply(1:2000, function(i){
+  mus <- c(mu1 = 3.25, mu2 = 3.5)
+  sim_data <- data.frame(cafe = as.factor(rep(c(1,2), rep(n, 2))),
+                         rating = c(sapply(mus, function(mu) rnorm(n, mu, sd = sigma))))
+  sim_aov <- aov(rating ~ as.factor(cafe), data = sim_data)
+  summary(sim_aov)[[1]]$`Pr(>F)`[1] < alpha
+})
+mean(typeII) # Needs to be ~ 0.90
+## [1] 0.9005
+```
+
+
+(6) [8 pts] The owner of a local pizza restaurant called Saucetistics is interested in growing his own tomatoes
+to make sauce for the pizzas. He conducted an experiment to determine which of four varieties of tomato
+yielded the most fruit in the hot desert spring weather. To control for the possibility that the soil is different
+in his field Close to or Far from the road, he chose an appropriate randomized design and recorded where
+each test plant grew. A total of 32 plants were used in the experiment, and the number of fruit produced
+by each plant (“yield”) recorded in the file tomatoes.csv.
+(a) [3 pts] Examine the data. What type of design was used? How many replications are there? 
+
+**This experiment uses 4X2 Factorial Design. There are 4 varieties (A-D) and 2 locations (far/close). There are 4 replicates.**
+
+```{r}
+tomatoes <- read.csv("./tomatoes.csv")
+tomatoes
+```
+
+(b) [2 pts] Test the hypothesis that all varieties of tomato plant produce the same expected number of
+fruit while controlling for location. Report the p-value and conclusion. **Using anova, we have a p-value of 6.99e-07 which means that with an alpha of 0.05 not all varieties of tomato plant produce the same expected number of fruit while controlling for location. **
+
+```{r}
+tomatoes_aov <- aov(yield ~ location*variety, data = tomatoes)
+summary(tomatoes_aov)
+```
+
+(c) [3 pts] Use Tukey’s Test to compare all possible pairs of tomato variety. Which variety(ies) appear to
+produce the most fruit? Explain your reasoning. **With a threshold of 0.05, a Tukey's test reveals that A/B, D/B, D/C, and A/C are significantly different. This means we can create two groups: (B,C) varieties appear to produce more fruit than (A, D) varieties.**
+
+```{r, fig.width=4, fig.height=3}
+tomatoes_hsd <- TukeyHSD(tomatoes_aov, which = "variety")
+tomatoes_hsd
+plot(tomatoes_hsd)
+```
+
+(7) [8 pts] An audiophile who goes by the name Samba Squares has decided to conduct an experiment to
+see which of four manufacturers (denoted I-IV) of over-the-ear headphones have the best sound quality.
+Samba wants the findings to be broadly generalizable to various types of music in many settings, so they
+decide to test the audio quality of each headphone across four different songs and four different background
+conditions. The design is shown in the table below, and the data are available in headphones.csv.
+(a) [2 pts] What kind of design is this? **This is a Randomized Complete Block Design with 2 blocking variables (Latin Square).**
+
+```{r}
+headphones <- read.csv("./headphones.csv")
+headphones
+```
+
+(b) [2 pts] Fit an additive model for audio quality as a function of manufacturer. Create diagnostic plots
+and assess the degree to which each model assumption is met: (i) normality; (ii) constant variance.
+**The QQ plot shows nonnormal residuals, especially in the smaller values. There appears to be heteroskedasticity in the fitted v. residuals plot. There also appears to be nonconstant variance in the predictor v. residuals plots: manufacturer III has a low variance, and song 3 has an abnormally high variance.**
+```{r, fig.width=3, fig.height=3}
+headphones_aov <- aov(quality ~ as.factor(bg) + as.factor(song) + as.factor(manufacturer), data = headphones)
+summary(headphones_aov)
+plot(headphones_aov, which = c(2,1))
+
+plot(headphones$bg, resid(headphones_aov))
+plot(headphones$song, resid(headphones_aov))
+plot(as.factor(headphones$manufacturer), resid(headphones_aov))
+```
+
+(c) [2 pts] Find a transformation to the response vartiable that results in a model for which (i) and (ii)
+are better satisfied. Provide your transformation. **The log transform on the response (quality) produces normal residuals (QQ plot) and better satisfies the constant variance assumption (predictor v residuals and fitted v residuals plots all appear to have constant variance).**
+
+```{r, fig.width=3, fig.height=3}
+headphones$logquality = log(headphones$quality)
+
+headphones_aov1 <- aov(logquality ~ as.factor(bg) + as.factor(song) + as.factor(manufacturer), 
+                       data = headphones)
+summary(headphones_aov1)
+plot(headphones_aov1, which = c(2,1))
+
+plot(headphones$bg, resid(headphones_aov1))
+plot(headphones$song, resid(headphones_aov1))
+plot(as.factor(headphones$manufacturer), resid(headphones_aov1))
+
+```
+
+(d) [2 pts] Based on your transformed response in (b), which factor appears to have more evidence of a
+non-zero effect on audio quality between song and background condition? **With a p-value of 0.065, the song variable seems to have the most likely affect on the sound quality.**
+
+```{r}
+summary(headphones_aov1)
+TukeyHSD(headphones_aov1)
+```

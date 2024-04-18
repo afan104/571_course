@@ -1,0 +1,308 @@
+---
+title: 'HW5: Factorial Designs'
+author: "MATH/STAT 571B"
+date: '**DUE: 4/5/2024 11:59pm**'
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+header-includes:
+- \renewcommand*\familydefault{\sfdefault} %% this picks a sans serif font
+- \usepackage[T1]{fontenc}
+- \usepackage{multirow}
+---
+
+```{r setup, echo=F}
+knitr::opts_chunk$set(cache = T, fig.width = 8, fig.height = 5, fig.align = 'center')
+```
+
+## Homework Guidelines
+
+***Please submit your answers on Gradescope as a PDF with pages matched to question answers.***
+
+One way to prepare your solutions to this homework is with R Markdown, which provides a way to include mathematical notation, text, code, and figures in a single document. A template `.Rmd` file is available through D2L. 
+
+Make sure all solutions are clearly labeled, and please utilize the question pairing tool on Gradescope. You are encouraged to work together, but your solutions, code, plots, and wording should always be your own. Come and see me during office hours or schedule an appointment when you get stuck and can't get unstuck.
+
+### I. Mathematical Foundations [12 pts]
+
+(1) [12 pts] The goal of this question is to show that if a factorial design is $D$-optimal for the "effects" coding, it is also optimal for the 0-1 coding. 
+
+    Consider an experiment designed to fit an additive model for two factors, A and B, each with two levels.
+
+    (a) [4 pts] Let $\mathbf{x}_i^\mathrm{eff} = \begin{pmatrix}1 & x^\mathrm{eff}_{iA} & x^\mathrm{eff}_{iB}\end{pmatrix}$ represent the "effects" coding of factor levels for the $i$th observation such that "low" levels of each factor are assigned a value of -1 and "high" levels are assigned 1 (e.g., (1 -1 -1) corresponds to low levels of both factors). In addition, let $\mathbf{x}_i$ represent the 0-1 coding of the same factor combinations but with 0 assigned for "low" levels instead of -1 (e.g., (1, 0, 0) corresponds to low levels of both factors). 
+    Find the values of a $3 \times 3$ matrix $\mathbf{A}$ such that $\mathbf{x}_i^\mathrm{eff}\mathbf{A} = \mathbf{x}_i$ for all possible $\mathbf{x}_i^\mathrm{eff}$ and $\mathbf{x}_i$.
+    
+    **The correct matrix is shown at the bottom of the following R chunk.**
+    
+```{r}
+library(MASS)
+library(dplyr)
+library(lmerTest)
+
+levels <- factor(c("-","+"))
+df <- expand.grid(A=levels,
+                  B=levels,
+                  C=levels)
+formula <- ~ A + B + C
+X_dm <- model.matrix(formula, data = df)
+X_eff <- model.matrix(formula, data = df, 
+                      contrasts.arg = list(A = contr.helmert,
+                                           B = contr.helmert,
+                                           C = contr.helmert))
+
+A <- round(ginv(X_eff)%*%X_dm,2)
+X_eff%*%A # Correct output
+A
+
+```
+    
+(b) [4 pts] Let $\mathbf{X}^\mathrm{eff}$ be the design matrix in the "effects" coding in which each row is $\mathbf{x}_i^\mathrm{eff}$ such that $\mathbf{y} = \mathbf{X}^\mathrm{eff}\boldsymbol\beta^\mathrm{eff} + \boldsymbol\epsilon, \; \boldsymbol\epsilon \sim \mathrm{N}(0, \sigma^2 \mathbf{I})$. Explain why $\mathbf{X}^\mathrm{eff}\mathbf{A} = \mathbf{X}$, and then show that if a design minimizes $|{\mathbf{X}^\mathrm{eff}}'\mathbf{X}^\mathrm{eff}|^{-1/2}$ it also minimizes $|\mathbf{X}'\mathbf{X}|^{-1/2}$ (*hint*: you can use the following property of determinants: $|\mathbf{B}\mathbf{C}| = |\mathbf{B}||\mathbf{C}|$). 
+    
+$X^{eff}A=X$ **holds because we know that the Helmert Matrix can convert X to an orthogonal matrix (**$X^{eff}$**). Then, the reverse transformation would be converting **$X^{eff}$ **back to X which requires the A matrix we solve for in part (a). This can generalize for other transformations on the model matrix as well (beyond effects and dummy coding).**
+    
+**Also, you can see that there is a positive relationship between** $|X'X|$ **and** $|X'_{eff}X_{eff}|$ **from the following. The AA' matrix is positive definite, so the determinant must be positive as well. Therefore, minimizing ** $|X'_{eff}X_{eff}|^{-1/2}$ **will minimize ** $|X'X|^{-1/2}$ **, too.**
+
+$\text{minimize } |X'X|^{-1/2} \Leftrightarrow \text{ maximize } |X'X|$
+$$
+\begin{aligned}
+|X'X| &= |(A'X'_{\text{eff}})(X_{\text{eff}}A)| \\
+           &= |A'(X'_{\text{eff}}X_{\text{eff}})A| \\
+           &= |A||A'||X'_{\text{eff}}X_{\text{eff}}| \\
+           &= |AA'||X'_{\text{eff}}X_{\text{eff}}| \\
+\end{aligned}
+$$
+    
+Now consider an arbitrary experiment with $k$ factors, each with its own number of levels, designed for any linear model with identifiable parameters.
+
+(c) [4 pts] It can be shown that any two design matrices, $\mathbf{X}^*$, $\mathbf{X}^\dagger$ for the same underlying model based on different codings can be related via some linear transformation, $\mathbf{T}$, such that $\mathbf{X}^* \mathbf{T} = \mathbf{X}^\dagger$. Explain why this means that *D*-optimality does not depend on the choice of coding for any linear model.
+
+**Since D-Optimality is proportional to ** $|X'X|^{-1/2}$ **, and minimizing this value for effects coding and dummy coding yields the same value, it would not matter what the encoding type is. This also generalizes to other types of encoding. As explained in part (b), having some matrix A to transform between different types of encoding will produce a positive definite matrix. This means the determinant will be positive. This allows ** $|X'X|^{-1/2}$ **to be proportional to the the variance of the coefficient estimates no matter what the encoding type is. Therefore, encoding will not change the D-optimal design.**
+
+### II. Applications [28 pts]
+
+(2) [6 pts] (DAE 6.5)
+
+(a) [2 pts] At alpha = 0.05, the factors Speed, Size, and Speed:Size interaction appear to be significant predictors of vibration. There are also appears to be a positive relationship for all 3 factors.
+    
+```{r}
+vibration <- read.csv("./Datasets/Q6-5.csv")
+vibration <- vibration %>%
+  mutate_at(vars(-Vibration), as.factor)
+
+vibration_aov <- aov(Vibration ~ Speed * Size, data = vibration)
+summary(vibration_aov)
+```
+    
+(b) [2 pts] The qq plot show that residuals appear to be normally distributed. The residuals v. fitted and residuals v. predictors also seem to have constant variance. There may be some heteroskedasticity in the Speed predictors (the -1 factor in Speed appears to possibly have lower variance in residuals.)
+    
+```{r, fig.width=4, fig.height=3}
+plot(vibration_aov, which = c(2,1))
+plot(vibration$Size, resid(vibration_aov), main = "Size v. Residuals", xlab="Size", ylab="Resid")
+plot(vibration$Speed, resid(vibration_aov), main = "Speed v. Residuals", xlab="Speed", ylab="Resid")
+```
+    
+(c) [2 pts] The lines have extremely different slopes, indicating a likely interaction. It appears that size and speed have a reinforcing effect, where factor 1 of size and factor 1 of speed have a greater effect on the vibration. To reduce vibration, factor -1 speed and factor -1 size would be best for routine operation.
+```{r, fig.width=4, fig.height=3}
+interaction.plot(vibration$Size, vibration$Speed, vibration$Vibration, type = "b",
+                 pch = 1:6, col = RColorBrewer::brewer.pal(6, "Dark2"))
+```
+
+(3) [8 pts] (DAE 6.12)
+
+(a) [1 pts] Based on the full dataset, the average factor effects appear to be -0.31725, 0.58600, and 0.28150 for Rate1, Time1, and Rate1:Time1 respectively. Based on part (e), I decided to remove the outliers 2,15 which led to the average factor effects being 0.01920833, 0.92245833, 0.06970833  for Rate1, Time1, and Rate1:Time1 respectively.
+
+```{r}
+thickness <- read.csv("./Datasets/Q6-12.csv")
+thickness <- thickness %>%
+  mutate_at(vars(-Thickness), as.factor)
+
+# full data
+thickness_aov <- aov(Thickness ~ Rate * Time, data = thickness,
+                      contrasts = list(Rate = "contr.helmert",
+                                       Time = "contr.helmert"))
+coef(thickness_aov) * 2
+
+# removing outlier
+thickness_aov_rm <- aov(Thickness ~ Rate * Time, data = thickness[c(-2, -15),],
+                      contrasts = list(Rate = "contr.helmert",
+                                       Time = "contr.helmert"))
+coef(thickness_aov_rm) * 2
+```
+    
+(b) [2 pts] There are no significant factors when including outliers. However, when removing outliers, the additive factors seem to be significant (Rate and Time) at an alpha = 0.05.
+```{r}
+summary(thickness_aov)
+summary(thickness_aov_rm)
+```
+    
+(c) [1 pts] There were no significant factors using the data containing outliers. However, the regression line from the data with outliers removed is: $\hat{y_i} = 14.407979167 + 0.009604167*x_{iA} + 0.461229167*x_{iB}$ using -1 1 encoding.
+```{r}
+coef(thickness_aov_rm)
+```
+    
+(d) [2 pts] The QQ plot, Residuals v. fitted, and Residuals v. predictor plots show that point 2 is an outlier. The residuals v. predicted plots show that point 15 under the factor 1 conditions show point 15 could be a potential outlier, as well. After removing these outliers, the QQ plot appears normal, and the residual plots show constant variance.
+```{r, fig.width=4, fig.height=3}
+plot(thickness_aov, which = c(1,2))
+plot(thickness$Rate, resid(thickness_aov), main = "Residuals v. Rate", xlab = "Rate", ylab = "Resid")
+plot(thickness$Time, resid(thickness_aov), main = "Residuals v. Time", xlab = "Time", ylab = "Resid")
+
+plot(thickness_aov_rm, which = c(1,2))
+plot(thickness$Rate[c(-2,-15)], resid(thickness_aov_rm), main = "Residuals v. Rate (Outlier Removed)", xlab = "Rate", ylab = "Resid")
+plot(thickness$Time[c(-2,-15)], resid(thickness_aov_rm), main = "Residuals v. Time (Outlier Removed)", xlab = "Time", ylab = "Resid")
+```  
+    
+(e) [2 pts] As seen in parts (a)-(d), I have found the 2nd and 15th data points to be outliers. But, because of the symmetry of the outliers (2nd data point and 2nd to last data point), there is the possibility that this is a systematic error. Therefore, I decided to conduct the analysis without them. Other possibilities that were explored were the log transform and the box cox transformation on Y to address the issues of the residuals. However, they were shown not to have much of an effect on fixing these outliers.
+```{r, fig.width=4, fig.height=3}
+# log
+plot(aov(log(Thickness) ~ Rate*Time, data = thickness), 1:2)
+
+# box-cox
+bc <- boxcox(thickness_aov)
+bc$x[which.max(bc$y)]
+plot(aov((Thickness)^-2 ~ Rate*Time, data = thickness), 1:2)
+```
+(4) [8 pts] (DAE 6.28)
+
+(a) [1 pts] B seems to have the least effect out of the 4 factors according to the normal probability plot. A, C, D appear to have the largest effects. AC also appears to have a large effect.
+```{r}
+yield <- read.csv("./Datasets/Q6-28.csv")
+yield <- yield %>%
+  mutate_at(vars(-Yield), as.factor)
+
+yield_aov <- aov(Yield ~ A*B*C*D, data = yield,
+                 contrasts = list(A="contr.helmert",
+                                  B="contr.helmert",
+                                  C="contr.helmert",
+                                  D="contr.helmert"))
+
+anova(yield_aov)
+coefs <- coef(yield_aov) 
+
+# QQ plots of the coefficients.
+qqnorm(coefs[-1] * 2, datax = T)
+sort(coefs[-1]) # B seems to have the least effect 
+```
+    
+(b) [2 pts] Performing the analysis on factors A,C, and D (removing factor B), I found tht the main effects A,C,D, as well as pairwise interactions AC,AD appeared significant at alpha=0.05.
+```{r}
+yield_aov_ACD <- aov(Yield ~ A*C*D, data = yield,
+                 contrasts = list(A="contr.helmert",
+                                  C="contr.helmert",
+                                  D="contr.helmert"))
+anova(yield_aov_ACD)
+```
+   
+(c) [2 pts] The regression model is: $\hat{y_i} = 17.375 + 2.25*x_{iA} + 1*x_{iC} + 1.625*x_{iD} + (-2.125)*x_{iA}*x_{iC} + 2*x_{iA}*x_{iD}$ using -1 1 encoding.
+```{r}
+coef(yield_aov_ACD)
+```
+
+(d) [1 pts] The QQ plot shows normal residuals. The residuals v. fitted and residuals v. predictors all show constant variance. There do not appear to be any problems in the diagnostics.
+```{r, fig.width=4, fig.height=3}
+plot(yield_aov_ACD, 1:2)
+plot(yield$A, resid(yield_aov_ACD), main = "Residuals v. A", xlab="A", ylab="Resid")
+plot(yield$C, resid(yield_aov_ACD), main = "Residuals v. C", xlab="C", ylab="Resid")
+plot(yield$D, resid(yield_aov_ACD), main = "Residuals v. D", xlab="B", ylab="Resid")
+```    
+   
+(e) [2 pts] Yes, this design can be collapsed by removing factor B. The figure below shows the average and range of yields for each factor combinations.
+
+$$
+\\
+$$
+
+
+$$
+\\
+$$
+
+$$
+\\
+$$
+
+$$
+\\
+$$
+
+$$
+\\
+$$
+
+$$
+\\
+$$
+
+$$
+\\
+$$
+
+$$
+\\
+$$
+
+```{r}
+perform_mean_range <- function(x) return(c(mean(x), diff(x)))
+perform_mean_range(yield[yield$A==1 & yield$B==1 & yield$C==1,"Yield"])
+perform_mean_range(yield[yield$A==1 & yield$B==1 & yield$C==-1,"Yield"])
+perform_mean_range(yield[yield$A==1 & yield$B==-1 & yield$C==1,"Yield"])
+perform_mean_range(yield[yield$A==1 & yield$B==-1 & yield$C==-1,"Yield"])
+perform_mean_range(yield[yield$A==-1 & yield$B==1 & yield$C==1,"Yield"])
+perform_mean_range(yield[yield$A==-1 & yield$B==1 & yield$C==-1,"Yield"])
+perform_mean_range(yield[yield$A==-1 & yield$B==-1 & yield$C==1,"Yield"])
+perform_mean_range(yield[yield$A==-1 & yield$B==-1 & yield$C==-1,"Yield"])
+```
+
+(5) [6 pts] (DAE 6.30)
+
+(a) [2 pts] The results show that A1 (glass) has a significant and positive effect on the scoring of the cake. The other factors do not appear to be significant. 
+```{r, fig.width=4, fig.height=3}
+brownies <- read.csv("./Datasets/brownies.csv")
+brownies <- brownies %>%
+  mutate_at(vars(-c(X,score)), as.factor)
+
+brownies_aov <- aov(score~ A + B + C, data = brownies)
+summary(brownies_aov)
+coef(brownies_aov)
+plot(brownies_aov, 1:2)
+plot(brownies$A, resid(brownies_aov), main = "Residuals v. A", xlab="A", ylab="Resid")
+plot(brownies$B, resid(brownies_aov), main = "Residuals v. B", xlab="B", ylab="Resid")
+plot(brownies$C, resid(brownies_aov), main = "Residuals v. C", xlab="C", ylab="Resid")
+```
+    
+(b) [2 pts] The analysis in part (a) would not be the correct approach because there is only one batch per factor combination. There are 8 people trying each batch, so there are no true replicates of each factor combination. The test panel should really be treated as a random effect and nuisance factor in the design.
+
+(c) [2 pts] The average and standard deviation analyses show that none of the factors are significant. This is a more appropriate approach because this treats each batch as having one replicate with some average rating and some standard deviation. The standard deviation analysis can give some evidence that the random effect of Panel_ID may not be significant if it were to be included. This means that while the analysis with mean/standard deviation may be more appropriate, the anlysis in part (a) may be a better test as a follow-up. It has more power and could possibly be treated as replicates since there is not a significant difference in the panel's scoring.
+```{r}
+head(brownies)
+brownies_summary <- brownies[1:8, c("A","B","C")]
+brownies_summary$mean <- tapply(brownies$score, brownies$Panel_ID, mean)
+brownies_summary$sd <- tapply(brownies$score, brownies$Panel_ID, sd)
+
+brownies_mean_aov <- aov(mean ~ A + B + C, data = brownies_summary)
+brownies_sd_aov <- aov(sd ~ A + B + C, data = brownies_summary)
+summary(brownies_mean_aov)
+summary(brownies_sd_aov)
+```
+
+Diagnostic plots shown below reveal normal residuals and constant variance.
+```{r, fig.width=4, fig.height=3}
+plot(brownies_mean_aov, 1:2)
+plot(brownies_summary$A, resid(brownies_mean_aov), main = "Residuals v. A", xlab="A", ylab="Resid")
+plot(brownies_summary$B, resid(brownies_mean_aov), main = "Residuals v. B", xlab="B", ylab="Resid")
+plot(brownies_summary$C, resid(brownies_mean_aov), main = "Residuals v. C", xlab="C", ylab="Resid")
+
+plot(brownies_sd_aov, 1:2)
+plot(brownies_summary$A, resid(brownies_sd_aov), main = "Residuals v. A", xlab="A", ylab="Resid")
+plot(brownies_summary$B, resid(brownies_sd_aov), main = "Residuals v. B", xlab="B", ylab="Resid")
+plot(brownies_summary$C, resid(brownies_sd_aov), main = "Residuals v. C", xlab="C", ylab="Resid")
+```
+    
+(d) [BONUS 2 pts] *Fit a model for the raw data treating Panel ID as an additive random effect. How do your conclusions compare? Which of the approaches in (c) and (d) do you think it most appropriate? Why?* By introducing a random effect, factor A is shown to have a significant effect on scoring. Factors B,C, and Panel_ID do not appear to be significant. The random effect model is the most accurate out of all 3 methods since in part (a) the batches are not true replicates. Each batch is only tested by one member of the panel. The method used in part (c) loses a lot of power because the original data is reduced to a mean and standard deviation value for each batch. Therefore, the random effect model stays true to the data and while retaining the highest level of power.
+```{r}
+brownies_random_aov <- lmer(score ~ A + B + C + (1 | Panel_ID), data = brownies)
+anova(brownies_random_aov)
+ranova(brownies_random_aov)
+
+coef(brownies_random_aov)
+```

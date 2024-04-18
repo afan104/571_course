@@ -1,0 +1,327 @@
+---
+title: "HW3: Randomized Blocks, Latin Squares, and Related Designs"
+author: "AMY FAN"
+date: "**DUE: 3/1/2024 11:59pm**"
+header-includes:
+   - \renewcommand*\familydefault{\sfdefault} %% this picks a sans serif font
+   - \usepackage[T1]{fontenc}
+output: pdf_document
+---
+
+```{r setup, echo=F}
+knitr::opts_chunk$set(cache = T, fig.width = 8, fig.height = 5, fig.align = 'center')
+```
+
+## Homework Guidelines
+
+***Please submit your answers on Gradescope as a PDF with pages matched to question answers.***
+
+One way to prepare your solutions to this homework is with R Markdown, which provides a way to include mathematical notation, text, code, and figures in a single document. A template `.Rmd` file is available through D2L. 
+
+Make sure all solutions are clearly labeled, and please utilize the question pairing tool on Gradescope. You are encouraged to work together, but your solutions, code, plots, and wording should always be your own. Come and see me during office hours or schedule an appointment when you get stuck and can't get unstuck.
+
+### I. Mathematical Foundations [13 pts]
+
+(@) [10 pts] The goal of the following questions is to demonstrate that a RCBD has higher power than a BIBD with the same number of treatment levels and total observations. Consider two potential experimental designs used to detect a treatment effect across three levels, A, B, and C while accounting for a nuisance blocking factor:
+
+**Randomized Complete Block Design**
+
+Block 1 | Block 2
+--------|--------
+A | B
+B | C
+C | A
+
+**Balanced Incomplete Block Design**
+
+Block 1 | Block 2 | Block 3
+--------|---------|--------
+A | A | -
+B | - | B
+- | C | C
+
+  (a) [3 pts] Fill in the blanks in the following R code (or write your own from scratch) to simulate a single data set from each design assuming $\mu_A = -1$, $\mu_B = 0$, $\mu_C = 1$, $\beta_1 = 1$, $\beta_2 = 2$, $\beta_3 = 3$, and $\sigma = 1/2$. 
+    
+```{r, eval = F}
+set.seed(66)
+mus <- c(A = -1, B = 0, C = 1)
+betas <- c("1" = 1, "2" = 2, "3" = 3)
+sigma <- 1/2
+dat_RCBD <- data.frame(trt = c("A", "B", "C", "B", "C", "A"),
+                       grp = c("1", "1", "1", "2", "2", "2"))
+dat_BIBD <- data.frame(trt = c("A", "A", "B", "B", "C", "C"),
+                       grp = c("1", "2", "1", "3", "2", "3"))
+dat_RCBD$y <- mus[dat_RCBD$trt] + betas[dat_RCBD$grp] + rnorm(6, sd = sigma)
+dat_BIBD$y <- mus[dat_BIBD$trt] + betas[dat_BIBD$grp] + rnorm(6, sd = sigma)
+```
+
+  (b) [2 pts] Perform an ANOVA and report the appropriate $p$-value for the test $H_0: \mu_A = \mu_B = \mu_C$ for each design. RCBD p-value is 0.1555779 and BIBD p-value is 0.3462278. 
+  
+```{r}
+set.seed(66)
+mus <- c(A = -1, B = 0, C = 1)
+betas <- c("1" = 1, "2" = 2, "3" = 3)
+sigma <- 1/2
+dat_RCBD <- data.frame(trt = c("A", "B", "C", "B", "C", "A"),
+                       grp = c("1", "1", "1", "2", "2", "2"))
+dat_BIBD <- data.frame(trt = c("A", "A", "B", "B", "C", "C"),
+                       grp = c("1", "2", "1", "3", "2", "3"))
+dat_RCBD$y <- mus[dat_RCBD$trt] + betas[dat_RCBD$grp] + rnorm(6, sd = sigma)
+dat_BIBD$y <- mus[dat_BIBD$trt] + betas[dat_BIBD$grp] + rnorm(6, sd = sigma)
+
+RCBD_aov <- aov(y ~ grp + trt, data = dat_RCBD)
+BIBD_aov <- aov(y ~ grp + trt, data = dat_BIBD)
+
+summary(RCBD_aov)[[1]]$`Pr(>F)`[2]
+summary(BIBD_aov)[[1]]$`Pr(>F)`[2]
+```
+
+  (c) [3 pts] Re-run your code from (a)--(b) at least 10 times and report $p$-values for each design (you can use a `for` loop, an `*apply()` function, or just carry this out manually). Which design results in more rejections of the null hypothesis at the $\alpha = 0.05$ level? **We get the exact same values as earlier. Since blocking has been considered as a separate variable, it does not affect the p-value of the treatment when there is no difference in blocking.**
+
+Trial | Design | $p$-value | reject $H_0$? | Design | $p$-value | reject $H_0$?
+------|--------|-----------|---------------|--------|-----------|--------------
+1     | RCBD   |0.15557790 |      NO       | BIBD   |0.34622782 |    NO
+2     | RCBD   |0.02426753 |      YES      | BIBD   |0.22083558 |    NO           
+3     | RCBD   |0.07677549 |      NO       | BIBD   |0.19602235 |    NO           
+4     | RCBD   |0.01520752 |      YES      | BIBD   |0.05905391 |    NO           
+5     | RCBD   |0.27094347 |      NO       | BIBD   |0.49005577 |    NO           
+6     | RCBD   |0.09384457 |      NO       | BIBD   |0.08000487 |    NO           
+7     | RCBD   |0.09217056 |      NO       | BIBD   |0.08487576 |    NO           
+8     | RCBD   |0.06383738 |      NO       | BIBD   |0.09540772 |    NO         
+9     | RCBD   |0.02352167 |      YES      | BIBD   |0.19959121 |    NO          
+10    | RCBD   |0.07817043 |      NO       | BIBD   |0.14538601 |    NO           
+------|--------|-----------|---------------|--------|-----------|--------------
+TOTAL | RCBD   | 0.8943165 |      3        | BIBD   | 1.917461  |     0         
+
+
+```{r}
+set.seed(66)
+RCBD_pvals <- rep(0,10)
+BIBD_pvals <- rep(0,10)
+
+for (i in 1:10) {
+  # generate data
+  mus <- c(A = -1, B = 0, C = 1)
+  betas <- c("1" = 1, "2" = 2, "3" = 3)
+  sigma <- 1/2
+  dat_RCBD <- data.frame(trt = c("A", "B", "C", "B", "C", "A"),
+                         grp = c("1", "1", "1", "2", "2", "2"))
+  dat_BIBD <- data.frame(trt = c("A", "A", "B", "B", "C", "C"),
+                         grp = c("1", "2", "1", "3", "2", "3"))
+  dat_RCBD$y <- mus[dat_RCBD$trt] + betas[dat_RCBD$grp] + rnorm(6, sd = sigma)
+  dat_BIBD$y <- mus[dat_BIBD$trt] + betas[dat_BIBD$grp] + rnorm(6, sd = sigma)
+  
+  # perform anova
+  RCBD_aov <- aov(y ~ grp + trt, data = dat_RCBD)
+  BIBD_aov <- aov(y ~ grp + trt, data = dat_BIBD)
+  
+  # get p-values
+  RCBD_pvals[i] <- summary(RCBD_aov)[[1]]$`Pr(>F)`[2]
+  BIBD_pvals[i] <- summary(BIBD_aov)[[1]]$`Pr(>F)`[2] 
+  
+}
+RCBD_pvals
+sum(RCBD_pvals)
+BIBD_pvals
+sum(BIBD_pvals)
+```
+  (d) [2 pts] Repeat your analysis in (a)--(c) for the situation with zero block effects (i.e., $\beta_j = 0, j = 1, 2, 3$). You do not need to report p-values or rejection rates. How do your overall findings change?
+  RCBD experiment resulted in 3 rejections and BIBD resulted in 0 rejections. Once blocking did not explain any significant variation, it was easier to detect explained variation by the treatment.
+
+```{r}
+set.seed(66)
+RCBD_pvals <- rep(0,10)
+BIBD_pvals <- rep(0,10)
+
+for (i in 1:10) {
+  # generate data
+  mus <- c(A = -1, B = 0, C = 1)
+  sigma <- 1/2
+  dat_RCBD <- data.frame(trt = c("A", "B", "C", "B", "C", "A"),
+                         grp = c("1", "1", "1", "2", "2", "2"))
+  dat_BIBD <- data.frame(trt = c("A", "A", "B", "B", "C", "C"),
+                         grp = c("1", "2", "1", "3", "2", "3"))
+  dat_RCBD$y <- mus[dat_RCBD$trt] + rnorm(6, sd = sigma)
+  dat_BIBD$y <- mus[dat_BIBD$trt] + rnorm(6, sd = sigma)
+  
+  # perform anova
+  RCBD_aov <- aov(y ~ grp + trt, data = dat_RCBD)
+  BIBD_aov <- aov(y ~ grp + trt, data = dat_BIBD)
+  
+  # get p-values
+  RCBD_pvals[i] <- summary(RCBD_aov)[[1]]$`Pr(>F)`[2]
+  BIBD_pvals[i] <- summary(BIBD_aov)[[1]]$`Pr(>F)`[2] 
+  
+}
+RCBD_pvals
+sum(RCBD_pvals)
+BIBD_pvals
+sum(BIBD_pvals)
+```
+(@) [3 pts] (DAE 4.45) An experimenter wishes to compare four treatments in blocks of two runs. Find a BIBD for this experiment with six blocks.
+a=4, b=6, k=2, r=12/4=3, lambda = 3*1/3=1 each pair of treatments is seen only once per block
+
+table | Block 1 | Block 2 | Block 3 | Block 4 | Block 5 | Block 6
+------|---------|---------|---------|---------|---------|---------
+TRT1  |    X    |    X    |    X    |         |         |         
+TRT2  |    X    |         |         |    X    |    X    |        
+TRT3  |         |    X    |         |    X    |         |    X    
+TRT4  |         |         |    X    |         |    X    |    X    
+
+
+### II. Applications [27 pts]
+
+(@) [4 pts] (DAE 4.1) *See text.*
+
+    (a) [2 pts] Left-Right Top-Bottom: 
+    
+    Treatment MS = 1010.56/4 = **252.64**
+    
+    Treatment p-value =  pf(29.84, 4, 20, lower.tail = F) = **3.544848e-08**
+    
+    Block DF = 29-24 = **5**
+    
+    Block SS = 1503.71 - (1010.56+169.33) = **323.82** (randomized complete = orthogonal)
+    
+    Block F = 64.765/8.4665 = **7.64956**
+    
+    Block p-value = pf(7.64956, 5, 20, lower.tail = F) = **0.0003688504**
+    
+    Error MS = 169.33/20 = **8.4665**
+    (b) [1 pts] There are 6 blocks
+    (c) [1 pts] At least one treatment has a significant effect on the outcome, and at least one block
+                is significanlty different from the other blocks.
+
+(@) [6 pts] (DAE 4.9) *See text.*
+
+    (a) [2 pts] the truck type and oil type both seem to have at least one level that is significnatly
+                different from the others.
+```{r}
+trucks <- read.csv("./HW3_data/Q4-9.csv")
+#head(trucks)
+trucks_aov <- aov(Consumption ~ as.factor(Truck) + as.factor(Oil), data = trucks)
+summary(trucks_aov)
+```
+    (b) [2 pts] Use Tukey's Honest Significant Difference method at a level of $\alpha = 0.05$ instead. 
+    
+    Provide a grouping of the treatment levels. 
+    
+    **2 and 1 are significantly different, so we group (2) and (1,3).**
+```{r, fig.height=4, fig.width=5}
+trucks_HSD <- TukeyHSD(trucks_aov,
+                         which = "as.factor(Oil)")
+trucks_HSD
+plot(trucks_HSD)
+```
+    (c) [2 pts] The QQ plot shows normal residuals. The Residuals v. Fitted plot shows slight variation in the residuals (middle values have slightly lower variance in residuals) but overall the residuals appear pretty even. The Residuals v. Oil and Resiuals v. Truck both have residuals that appear to have constant variance.
+```{r, fig.height=4, fig.width=5}
+qqnorm(resid(trucks_aov))
+qqline(resid(trucks_aov))
+
+plot(trucks_aov, which = 1)
+plot(trucks$Oil, resid(trucks_aov))
+plot(trucks$Truck, resid(trucks_aov))
+```
+
+(@) [4 pts] (DAE 4.23) *See text. In addition, create pairwise interaction plots to check the additivity assumption. Do you see any gross violations of additivity?*
+
+**In plots 2, 3, 4 we can see violations of additivity in operator 1, method B, and order 4, respectively.**
+
+```{r, fig.height=4, fig.width=5}
+source('interaction_plot.R')
+assembly <- read.csv("./HW3_data/Q4-23.csv")
+#head(assembly)
+
+
+interaction_plot(aov(Time ~ Method + as.factor(Operator) + as.factor(Order), data = assembly))
+
+# Operator 1 violates
+interaction_plot(aov(Time ~ Method + as.factor(Order) + as.factor(Operator), data = assembly)) 
+
+# Method B violates
+interaction_plot(aov(Time ~ as.factor(Operator) + Method + as.factor(Order), data = assembly)) 
+
+# Order 4 violates
+interaction_plot(aov(Time ~ as.factor(Operator) + as.factor(Order) + Method, data = assembly)) 
+
+interaction_plot(aov(Time ~ as.factor(Order) + as.factor(Operator) + Method, data = assembly))
+interaction_plot(aov(Time ~ as.factor(Order) + Method + as.factor(Operator), data = assembly))
+```
+
+(@) [3 pts] (DAE 4.36) *See text.* At an alpha of .05, we see that the method block is significant. Looking at the Tukey test, we can infer that within the method blocks, C and B are significantly different at a 0.05 alpha level. We can group the methods as (C,D) and (A,B).
+```{r}
+assembly_GL <- read.csv("./HW3_data/Q4-36.csv")
+assembly_GL_aov <- aov(Time ~ as.factor(Order) + as.factor(Operator) + Method, data=assembly_GL)
+
+summary(assembly_GL_aov)
+
+plot(TukeyHSD((assembly_GL_aov), which = "as.factor(Operator)"))
+plot(TukeyHSD((assembly_GL_aov), which = "as.factor(Order)"))
+plot(TukeyHSD((assembly_GL_aov), which = "Method"))
+TukeyHSD(assembly_GL_aov, which = "Method")
+```
+
+(@) [5 pts] (DAE 4.40) *See text. In addition, report the values of $a$, $b$, $r$, $k$, and $\lambda$ for the design.* 
+Based on the analysis, both the additives and the car blocking have significant effects at an alpha = 0.05. Based on the Tukey HSD, Car 5 appears to have significantly lower mileage than Cars 1-4 (all similar). Additionally, car additives (1, 2) lead to significantly higher mileage than (3, 4, 5).
+
+a=5, b=5, r=4, k=4, $\lambda$=3
+
+```{r}
+mileage <- read.csv("./HW3_data/Q4-40.csv")
+#head(mileage)
+
+# order matters
+mileage_aov <- aov(Mileage ~ as.factor(Car) + as.factor(Additive) , data = mileage) 
+summary(mileage_aov)
+TukeyHSD(mileage_aov, which = "as.factor(Car)")
+TukeyHSD(mileage_aov, which = "as.factor(Additive)")
+```
+
+(@) [5 pts] (DAE 4.53) *See text. Instead of bounds on the $p$-value for (g) and (h), report specific value.*
+a) Factor SS = 108.63-37.75 = 70.88
+b) Factor DF = 70.88/14.18 = 5
+c) Error DF = 23 - 5 = 18
+d) MSE = 37.75 / 18 = 2.097222
+e) F value = MS Factor / MSE = 14.18/2.097222 = 6.761325
+f) Reject null at alpha = 0.05 with a p-value of 0.001037926
+g) and h) p-value = pf(6.761325, 5, 18, lower.tail = F) = 0.001037926
+i) no. factor levels = There are 6 factor levels
+j) replicates = 24/6 = 4
+k) Reconstucted (Left-Right Top-Bottom) - 
+
+Block DF: 4
+
+Block_DF * Factor_DF = Error_DF
+
+Block_DF + Factor_DF + Error_DF = Total_DF
+
+Block_DF + Factor_DF + Block_DF * Factor_DF = Total_DF where Factor_DF = 4, Total_DF = 23
+
+Block_DF + 4 + 4*Block_DF = 23
+
+5*Block_DF = 19
+
+Block = 4
+
+
+Block SS: 12
+
+Block MS: 12/4 = 3
+
+Block F-value: pf(3/2.359375, 4, 16, lower.tail = F) = 0.322
+
+Factor DF: 58.88/14.18 = 4
+
+Factor SS: 108.63 - (37.75 + 12) = 58.88
+
+Factor F-value: 14.18/2.359375 = 6.010066
+
+Error DF: 4*4 = 16
+
+Error MS: 37.75 / 16 = 2.359375
+
+
+p-value: pf(6.010066, 4, 16, lower.tail = F) = 0.003772708
+
+
+Comparing the pvalues, we see that blocking increased the p-values from 0.0010 to 0.0037. However, in both cases, there is a significant p-value for the factor.

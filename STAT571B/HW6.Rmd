@@ -1,0 +1,203 @@
+---
+title: "HW6: Blocking and Fractional Factorial Designs"
+author: "MATH/STAT 571B"
+date: "**DUE: 4/19/2024 11:59pm**"
+header-includes:
+   - \renewcommand*\familydefault{\sfdefault} %% this picks a sans serif font
+   - \usepackage[T1]{fontenc}
+   - \usepackage{multirow}
+output: pdf_document
+---
+
+```{r setup, echo=F}
+knitr::opts_chunk$set(cache = T, fig.width = 8, fig.height = 5, fig.align = 'center')
+```
+## Homework Guidelines
+
+***Please submit your answers on Gradescope as a PDF with pages matched to question answers.***
+
+One way to prepare your solutions to this homework is with R Markdown, which provides a way to include mathematical notation, text, code, and figures in a single document. A template `.Rmd` file is available through D2L. 
+
+Make sure all solutions are clearly labeled, and please utilize the question pairing tool on Gradescope. You are encouraged to work together, but your solutions, code, plots, and wording should always be your own. Come and see me during office hours or schedule an appointment when you get stuck and can't get unstuck.
+
+### I. Mathematical Foundations [19 pts]
+
+(1) [4 pts] A collaborator sends you a file with the following tabular data for a full factorial experiment with three factors, $A$, $B$, and $C$:
+
+$A$|$B$|$C$| $y$
+---|---|---|-----
+$-$|$-$|$-$|$y_1$
+$+$|$-$|$-$|$y_2$
+$-$|$+$|$-$|$y_3$
+$+$|$+$|$-$|$y_4$
+$-$|$-$|$+$|$y_5$
+$+$|$-$|$+$|$y_6$
+$-$|$+$|$+$|$y_7$
+$+$|$+$|$+$|$y_8$
+
+He also tells you that the experiment was run in two blocks, but he forgot to record which observation came from which block. Looking back at his notes, he recites that "...blocking was chosen to confound blocks with the interaction of factors $B$ and $C$." Use this information to create a column called 'block' that indicates with 1s and 2s which observations belong to each of the two blocks.
+
+```{r, echo = FALSE}
+library(dplyr)
+```
+
+```{r}
+levels <- c(-1, 1)
+df <- expand.grid(A = levels, B = levels, C = levels)
+df
+
+df <- df %>% 
+  mutate(Block= ifelse(A*B*C == -1, 1,
+                       ifelse(A*B*C == 1, 2, NA)))
+  
+df
+```
+
+(2) [9 pts] A sequential experiment was carried out for analyzing the effects of varying four factors, $A$, $B$, $C$, and $D$ on a response, $y$. In the first phase of the experiment, one quarter of the full factorial design was carried out according to the defining relation $I = ABC = BCD$. In the second phase of the experiment, another quarter of the full factorial design was carried out according to the defining relation $I = -ABC = BCD$. 
+
+    (a) [3 pts] What is the resolution of the phase 1 design? Explain your reasoning. **Phase 1: I = ABC = BCD = AD, AD is shortest so Resolution 2.**
+
+    (b) [3 pts] What is the resolution of the design after combining phases 1 and 2? Explain your reasoning. **Phase 1: I = ABC = BCD = AD; Phase 2: I = -ABC = BCD = -AD; When added, you get I = BCD so resolution 3.**
+
+    In the third and final phase, one more quarter of the full factorial design was carried out according to the defining relation $I = ABC = -BCD$. A model with all first and second-order factors was fit to the resulting 12 runs that produced the following R output.
+
+    (c) [3 pts] Explain how we can be sure from the output that the resolution of the combined three phase design is at least IV.
+    **The output shows that both 1st and 2nd order coefficients are not being confounded. Therefore, at least 2nd order coefficients (or higher) are being aliased.**
+
+<!-- \begin{center}\includegraphics[width=0.85\textwidth]{R_output.png}\end{center} -->
+
+(3) [6 pts] A full fold-over two-phase experiment was carried out for analyzing the effects of varying five factors, $A$, $B$, $C$, $D$, and $E$ on a response, $y$. In the first phase of the experiment, one quarter of the full factorial design was carried out according to the defining relation $I = ABC = CDE$. In the second phase of the experiment, another quarter of the full factorial design was carried out to create a full fold-over design.
+
+    (a) [3 pts] What is the resolution of the phase 1 design? Explain your reasoning. **Phase 1: I = ABC = CDE = ABDE; ABC and CDE are the shortest, so the resolution is III**
+    
+    (b) [3 pts] What is the resolution of the design after combining phases 1 and 2? Explain your reasoning. **Phase 1: I = ABC = CDE = ABDE; Phase 2: I = -ABC = -CDE = ABDE; Together: I=ABDE so Resolution IV.**
+
+### II. Applications [21 pts]
+
+(4) [7 pts] (DAE 7.2) *Hint: You will need to create your own variable indicating which replicate each observation is associated with.* **I removed the Size:Speed:Block interaction to free up degrees of freedom for prediction. This test shows that Size, Speed, and Size:Speed appear to be significant at the alpha=0.05 level. However, the blocks do not appear to be significant. The diagnostics show normal residuals and constant variance for the fitted values. However, there is some different in the residuals against the blocks.**
+
+```{r}
+vibration_blk <- read.csv("./Datasets/Q6-5.csv")
+vibration_blk <- vibration_blk %>%
+  mutate(Block=rep(1:4,4)) %>%
+  mutate_at(vars(-Vibration), as.factor)
+
+# use recommended blocking
+vibration_aov_blk <- aov(Vibration ~ Speed*Size + Speed*Block + Block*Size, data = vibration_blk) 
+anova(vibration_aov_blk)
+```
+
+
+```{r, diagnostics1}
+#QQ, residuals v. fitted
+plot(vibration_aov_blk, which = 1:2)
+
+#Residuals v. predictors
+resids <- resid(vibration_aov_blk)
+plot(vibration_blk$Size, resids, xlab="Size", ylab="resid", main = "Size v. Resid")
+plot(vibration_blk$Speed, resids, xlab="Speed", ylab="resid", main = "Speed v. Resid")
+plot(vibration_blk$Block, resids, xlab="Block", ylab="resid", main = "Block v. Resid")
+
+# see why residuals are so different
+resid_check <- matrix(resids, byrow = T, nrow = 4)
+rownames(resid_check) <- c(1:4)
+colnames(resid_check) <- c("(1)", "a", "b", "ab")
+resid_check
+```
+
+(5) [7 pts] (DAE 7.5) *Hint: Similar to question (1), you will need to create an indicator variable for block. Verify your block averages for Yield are 85 and 81.75.* At an alpha = 0.05, there appears to be evidence of significant factors A, D, AD, ABC, ABD to on yield. These interactions also imply the lower terms AC and AB to be significant. The diagnostic plots show normal residuals and constant variance across fitted values and predictors (except possibly in the B factor).
+
+```{r}
+yield_blk <- read.csv("./Datasets/Q6-7.csv")
+yield_blk <- yield_blk[yield_blk$replicate=="I",] %>%
+  mutate(ABCD=A*B*C*D) %>%
+  mutate(Block= ifelse(ABCD == -1, 1,
+                       ifelse(ABCD == 1, 2, NA))) %>%
+  mutate_at(vars(-Yield), as.factor)
+
+tapply(yield_blk$Yield, yield_blk$Block, mean)
+
+# anova
+yield_aov_blk <- aov(Yield ~ (A+B+C+D)^3 + Block, data = yield_blk,
+                 contrasts = list(A="contr.helmert",
+                                  B="contr.helmert",
+                                  C="contr.helmert",
+                                  D="contr.helmert"))
+
+# normal plot to remove some interactions
+coefs <- coef(yield_aov_blk) 
+qqnorm(coefs[-1] * 2, datax = T)
+
+# likely significant coeffs: A, ABC, AB, ABD, D, Block
+# required lower order coeffs: BC, AC, AD, BD, B, C
+# likely not significant and removable: BCD, ACD, CD
+sort(coefs[-1]) # REMOVE THE VALUES THAT HAVE THE LOWEST ABSOLUTE VALUE
+
+
+# redo anova with removed interactions
+yield_aov_blk2 <- aov(Yield ~ A + A:B:C + A:B + A:B:D + D + Block + B:C + A:C + A:D + B:D + B + C, data = yield_blk,
+                 contrasts = list(A="contr.helmert",
+                                  B="contr.helmert",
+                                  C="contr.helmert",
+                                  D="contr.helmert"))
+summary(lm(yield_aov_blk2))
+```
+
+```{r, diagnostic plots}
+#QQ, residuals v. fitted
+plot(yield_aov_blk2, which = 1:2)
+
+#Residuals v. predictors
+resids <- resid(yield_aov_blk2)
+plot(yield_blk$A, resids, xlab="A", ylab="resid", main = "A v. Resid")
+plot(yield_blk$B, resids, xlab="B", ylab="resid", main = "B v. Resid")
+plot(yield_blk$C, resids, xlab="C", ylab="resid", main = "C v. Resid")
+plot(yield_blk$D, resids, xlab="D", ylab="resid", main = "D v. Resid")
+plot(yield_blk$Block, resids, xlab="Block", ylab="resid", main = "Block v. Resid")
+```
+
+(6) [7 pts] (DAE 8.1) *Define the one-half fraction using the principal part of the design that maximizes the resolution. Verify that your sample variance for Yield across the resulting 8 runs is 64.* By testing the formula Yield ~ A*D + A*B + C, I found that there were no significant factors that explained yield at alpha = 0.05 level. However, the QQ residuals did not seem normal. The residuals v. fitted and predictors showed constant variance except for factor B.
+```{r}
+yield_fc <- read.csv("./Datasets/Q6-7.csv")
+yield_fc <- yield_fc[yield_fc$replicate=="I",] %>%
+  mutate(ABCD=A*B*C*D) %>%
+  mutate(Block= ifelse(ABCD == -1, 1,
+                       ifelse(ABCD == 1, 2, NA))) %>%
+  mutate_at(vars(-Yield), as.factor)
+
+tapply(yield_fc$Yield, yield_fc$Block, sd)^2 # Take block 2; I=ABCD
+
+yield_aov_fc <- aov(Yield ~ (A+B+C+D)^2, data = yield_fc[yield_fc$Block==2,],
+                 contrasts = list(A="contr.helmert",
+                                  B="contr.helmert",
+                                  C="contr.helmert",
+                                  D="contr.helmert"))
+
+# normal plot to remove some interactions
+coefs <- coef(yield_aov_fc) 
+qqnorm(coefs[-1] * 2, datax = T)
+
+# Remove: AC interaction
+sort(coefs[-1])
+
+# Remove AC coefficient for re-running
+yield_aov_fc <- aov(Yield ~ A*D + A*B + C, data = yield_fc[yield_fc$Block==2,],
+                 contrasts = list(A="contr.helmert",
+                                  B="contr.helmert",
+                                  C="contr.helmert",
+                                  D="contr.helmert"))
+summary(lm(yield_aov_fc))
+```
+
+```{r, diagnostics2}
+#QQ, residuals v. fitted
+plot(yield_aov_fc, which = 1:2)
+
+#Residuals v. predictors
+resids <- resid(yield_aov_blk2)
+plot(yield_blk$A, resids, xlab="A", ylab="resid", main = "A v. Resid")
+plot(yield_blk$B, resids, xlab="B", ylab="resid", main = "B v. Resid")
+plot(yield_blk$C, resids, xlab="C", ylab="resid", main = "C v. Resid")
+plot(yield_blk$D, resids, xlab="D", ylab="resid", main = "D v. Resid")
+plot(yield_blk$Block, resids, xlab="Block", ylab="resid", main = "Block v. Resid")
+```
